@@ -265,9 +265,9 @@ export default function Transactions() {
         wsData.push([
           i+1,
           tx.vendor_client || tx.description || '',
-          'Madrid',
+          tx.local || 'Madrid',
           d,
-          tx.description || '',
+          tx.num_factura || tx.description || '',
           pAndL,
           '',
           base,
@@ -279,10 +279,10 @@ export default function Transactions() {
           tx.notes || '',
           '',
           '',
-          '',
-          '',
+          tx.cif_proveedor || '',
+          tx.num_factura || '',
           new Date().toLocaleString('es-ES'),
-          'Sabores Adelitas SL',
+          tx.acreedor || 'Sabores Adelitas SL',
         ])
       })
       const ws = XLSX.utils.aoa_to_sheet(wsData)
