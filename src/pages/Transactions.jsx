@@ -312,7 +312,7 @@ export default function Transactions() {
 
   const exportExcel = async () => {
     try {
-      const all = await api.getTransactions({})
+      const all = txs
       const headers = ['#','PROVEEDOR','LOCAL','FECHA','FACTURA','P AND L','CONCEPTO','BASE','IVA','TOTAL FACT','ALBARAN/IRPF','REVISADO','PAGADO','NOTAS','NOTA 2','NOTA 3','CIF','NO FACTURA','REGISTRO','ACREEDOR']
       const wsData = [headers]
       all.forEach((tx, i) => {
@@ -327,9 +327,9 @@ export default function Transactions() {
           tx.vendor_client || tx.description || '',
           tx.local || 'Madrid',
           d,
-          tx.num_factura || tx.description || '',
+          tx.description || '',
           pAndL,
-          '',
+          tx.category || tx.concepto || '',
           base,
           iva,
           { f: `I${row}+H${row}` },
@@ -443,7 +443,7 @@ export default function Transactions() {
                 <th style={{ ...thS, width:105 }}>FECHA</th>
                 <th style={{ ...thS, width:150 }}>FACTURA</th>
                 <th style={{ ...thS, width:75 }}>P AND L</th>
-                <th style={{ ...thS, width:120 }}>CONCEPTO</th>
+                <th style={{ ...thS, width:165 }}>CONCEPTO</th>
                 <th style={{ ...thS, width:85, textAlign:'right' }}>BASE</th>
                 <th style={{ ...thS, width:75, textAlign:'right' }}>IVA</th>
                 <th style={{ ...thS, width:90, textAlign:'right' }}>TOTAL FACT</th>
@@ -457,7 +457,6 @@ export default function Transactions() {
                 <th style={{ ...thS, width:150 }}>NO FACTURA</th>
                 <th style={{ ...thS, width:130 }}>REGISTRO</th>
                 <th style={{ ...thS, width:150 }}>ACREEDOR</th>
-                <th style={{ ...thS, width:165 }}>CATEGORÍA</th>
                 <th style={{ ...thS, width:32 }}></th>
               </tr>
             </thead>
@@ -483,7 +482,18 @@ export default function Transactions() {
                     <ECell tx={tx} field="transaction_date" w={105} type="date" onSave={save}/>
                     <ECell tx={tx} field="description" w={150} onSave={save}/>
                     <td style={{ ...tdS, color:'var(--text-dim)', width:75 }}>{pAndL}</td>
-                    <ECell tx={tx} field="concepto" w={120} onSave={save}/>
+                    <td style={{ ...tdS, width:165 }}>
+                      <select value={tx.category_id || ''} onChange={e => { updateCategory(tx.id, e.target.value); patchTx(tx.id, 'category_id', e.target.value) }}
+                        style={{ background:'transparent', border:'1px solid transparent', color:'var(--cream)', fontSize:10,
+                          borderRadius:3, padding:'2px 4px', cursor:'pointer', width:'100%', fontFamily:'Jost,sans-serif' }}
+                        onMouseEnter={e => e.target.style.borderColor='var(--border)'}
+                        onMouseLeave={e => e.target.style.borderColor='transparent'}>
+                        <option value="">—</option>
+                        {cats.filter(c => c.type==='expense'||c.type==='both').map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </td>
                     <td style={{ ...tdS, textAlign:'right', width:85, color: base < 0 ? 'var(--red-light)' : 'var(--green)' }}>{base.toFixed(2)}</td>
                     <td style={{ ...tdS, textAlign:'right', width:75, color:'var(--text-dim)' }}>{iva.toFixed(2)}</td>
                     <td style={{ ...tdS, textAlign:'right', width:90, fontWeight:500, color: total < 0 ? 'var(--red-light)' : 'var(--green)' }}>{total.toFixed(2)}</td>
@@ -497,18 +507,7 @@ export default function Transactions() {
                     <ECell tx={tx} field="num_factura" w={150} onSave={save}/>
                     <td style={{ ...tdS, color:'var(--text-muted)', fontSize:10, width:130 }}>{tx.created_at ? new Date(tx.created_at).toLocaleString('es-ES') : ''}</td>
                     <ECell tx={tx} field="acreedor" w={150} onSave={save}/>
-                    <td style={{ ...tdS, width:165 }}>
-                      <select value={tx.category_id || ''} onChange={e => updateCategory(tx.id, e.target.value)}
-                        style={{ background:'transparent', border:'1px solid transparent', color:'var(--text-dim)', fontSize:10,
-                          borderRadius:3, padding:'2px 4px', cursor:'pointer', width:'100%', fontFamily:'Jost,sans-serif' }}
-                        onMouseEnter={e => e.target.style.borderColor='var(--border)'}
-                        onMouseLeave={e => e.target.style.borderColor='transparent'}>
-                        <option value="">—</option>
-                        {cats.filter(c => c.type==='expense' || c.type==='both').map(c => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
-                    </td>
+
                     <td style={{ ...tdS, textAlign:'right', width:32 }}>
                       <button onClick={() => del(tx.id)} style={{ background:'none', border:'none', color:'var(--text-muted)', cursor:'pointer', fontSize:12, opacity:0.4, transition:'opacity 0.15s' }}
                         onMouseEnter={e => e.currentTarget.style.opacity='1'} onMouseLeave={e => e.currentTarget.style.opacity='0.4'}>✕</button>
