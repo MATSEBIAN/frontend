@@ -285,7 +285,7 @@ export default function Transactions() {
           tx.acreedor || 'Sabores Adelitas SL',
         ])
       })
-      const ws = XLSX.utils.aoa_to_sheet(wsData)
+      const ws = XLSX.utils.aoa_to_sheet(wsData, { cellDates: true })
       // Formato fecha columnas D y F
       const dateFmt = 'dd/mm/yyyy'
       all.forEach((_, i) => {
