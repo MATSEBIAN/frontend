@@ -254,6 +254,17 @@ export default function Transactions() {
     if (!confirm('¿Eliminar este movimiento?')) return
     await api.deleteTransaction(id); load()
   }
+  const updateCategory = async (txId, catId) => {
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL}/api/transactions/${txId}/category`, {
+        method: 'PATCH',
+        headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify({ category_id: catId ? parseInt(catId) : null })
+      })
+      setTxs(prev => prev.map(t => t.id === txId ? { ...t, category_id: catId, category: cats.find(c=>c.id==catId)?.name || '' } : t))
+    } catch(e) { console.error(e) }
+  }
+
   const delSelected = async () => {
     if (!selected.size || !confirm(`¿Eliminar ${selected.size} movimiento(s)?`)) return
     await Promise.all([...selected].map(id => api.deleteTransaction(id)))
@@ -410,7 +421,19 @@ export default function Transactions() {
                     <div style={{ color:'var(--cream)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{tx.description || tx.vendor_client || '—'}</div>
                     {tx.vendor_client && tx.description && <div style={{ fontSize:11, color:'var(--text-muted)' }}>{tx.vendor_client}</div>}
                   </td>
-                  <td style={{ padding:'12px 16px', fontSize:12, color:'var(--text-dim)' }}>{tx.category || '—'}</td>
+                  <td style={{ padding:'4px 8px', fontSize:12 }}>
+                    <select value={tx.category_id || ''} onChange={e => updateCategory(tx.id, e.target.value)}
+                      style={{ background:'transparent', border:'1px solid transparent', color:'var(--text-dim)', fontSize:11,
+                        borderRadius:3, padding:'4px 6px', cursor:'pointer', width:'100%', maxWidth:180,
+                        fontFamily:'Jost, sans-serif' }}
+                      onMouseEnter={e => e.target.style.borderColor='var(--border)'}
+                      onMouseLeave={e => e.target.style.borderColor='transparent'}>
+                      <option value="">— sin categoría —</option>
+                      {cats.filter(c => c.type === 'expense' || c.type === 'both').map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </td>
                   <td style={{ padding:'12px 16px', fontSize:12, color:'var(--text-dim)' }}>{PM_LABELS[tx.payment_method] || tx.payment_method}</td>
                   <td style={{ padding:'12px 16px' }}>
                     <span className={`badge badge-${tx.source}`}>{tx.source === 'manual' ? 'Manual' : 'Doc'}</span>
