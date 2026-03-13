@@ -26,7 +26,6 @@ function ManualForm({ categories, onSave, onClose }) {
 
   return (
     <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:14 }}>
-      {/* Tipo */}
       <div style={{ display:'flex', gap:8 }}>
         {[['income','↑ Ingreso'],['expense','↓ Gasto']].map(([v,l]) => (
           <button key={v} type="button" onClick={() => setForm(f=>({...f, type:v, category_id:''}))} style={{
@@ -97,24 +96,51 @@ function ManualForm({ categories, onSave, onClose }) {
 }
 
 function UploadForm({ onSave, onClose }) {
-  const [file, setFile]       = useState(null)
-  const [type, setType]       = useState('expense')
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState('')
+  const [files, setFiles]       = useState([])
+  const [type, setType]         = useState('expense')
+  const [loading, setLoading]   = useState(false)
+  const [progress, setProgress] = useState([])
+  const [dragging, setDragging] = useState(false)
+  const [error, setError]       = useState('')
   const fileRef = useRef()
+
+  const addFiles = (newFiles) => {
+    const valid = Array.from(newFiles).filter(f => f.size <= 16*1024*1024)
+    setFiles(prev => {
+      const existing = new Set(prev.map(f => f.name))
+      return [...prev, ...valid.filter(f => !existing.has(f.name))]
+    })
+  }
+
+  const removeFile = (name) => setFiles(f => f.filter(x => x.name !== name))
+
+  const onDrop = (e) => {
+    e.preventDefault(); setDragging(false)
+    addFiles(e.dataTransfer.files)
+  }
 
   const submit = async (e) => {
     e.preventDefault()
-    if (!file) return setError('Selecciona un archivo')
+    if (!files.length) return setError('Selecciona al menos un archivo')
     setError(''); setLoading(true)
-    try {
-      const fd = new FormData()
-      fd.append('file', file)
-      fd.append('type', type)
-      await api.uploadDocument(fd)
-      onSave()
-    } catch(err) { setError(err.message) }
-    finally { setLoading(false) }
+    const results = []
+    for (const file of files) {
+      setProgress(prev => [...prev.filter(p => p.name !== file.name), { name: file.name, status: 'procesando' }])
+      try {
+        const fd = new FormData()
+        fd.append('file', file)
+        fd.append('type', type)
+        await api.uploadDocument(fd)
+        results.push({ name: file.name, status: 'ok' })
+      } catch(err) {
+        results.push({ name: file.name, status: 'error', error: err.message })
+      }
+      setProgress([...results])
+    }
+    setLoading(false)
+    if (results.every(r => r.status === 'ok')) {
+      setTimeout(onSave, 800)
+    }
   }
 
   return (
@@ -130,35 +156,67 @@ function UploadForm({ onSave, onClose }) {
         ))}
       </div>
 
+      {/* Drop zone */}
       <div
         onClick={() => fileRef.current?.click()}
+        onDragOver={e => { e.preventDefault(); setDragging(true) }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={onDrop}
         style={{
-          border: `2px dashed ${file ? 'var(--gold)' : 'var(--border)'}`,
+          border: `2px dashed ${dragging ? 'var(--gold)' : files.length ? 'var(--green)' : 'var(--border)'}`,
           borderRadius:4, padding:'32px 20px', textAlign:'center', cursor:'pointer',
-          background: file ? 'rgba(201,168,76,0.05)' : 'transparent', transition:'all 0.2s',
+          background: dragging ? 'rgba(201,168,76,0.08)' : files.length ? 'rgba(74,222,128,0.04)' : 'transparent',
+          transition:'all 0.2s',
         }}
       >
-        <div style={{ fontSize:24, marginBottom:10 }}>📄</div>
-        <div style={{ fontSize:13, color: file ? 'var(--gold)' : 'var(--text-dim)' }}>
-          {file ? file.name : 'Clic para seleccionar factura o ticket'}
+        <div style={{ fontSize:28, marginBottom:10 }}>{dragging ? '⬇️' : '📄'}</div>
+        <div style={{ fontSize:14, color: dragging ? 'var(--gold)' : 'var(--text-dim)', fontWeight:500 }}>
+          {dragging ? 'Suelta aquí' : 'Arrastra facturas aquí o haz clic para seleccionar'}
         </div>
-        <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>
-          PDF, JPG, PNG · máx. 16MB
+        <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:8 }}>
+          PDF, JPG, PNG · múltiples archivos · máx. 16MB cada uno
         </div>
-        <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" style={{ display:'none' }}
-          onChange={e => setFile(e.target.files[0] || null)} />
+        <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" multiple style={{ display:'none' }}
+          onChange={e => addFiles(e.target.files)} />
       </div>
 
-      {file && (
+      {/* Lista de archivos */}
+      {files.length > 0 && (
+        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+          {files.map(f => {
+            const p = progress.find(x => x.name === f.name)
+            return (
+              <div key={f.name} style={{ display:'flex', alignItems:'center', gap:10, background:'rgba(0,0,0,0.15)', borderRadius:3, padding:'8px 12px' }}>
+                <span style={{ fontSize:13, flex:1, color:'var(--cream)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{f.name}</span>
+                <span style={{ fontSize:11, color:'var(--text-muted)', flexShrink:0 }}>{(f.size/1024).toFixed(0)} KB</span>
+                {p && (
+                  <span style={{ fontSize:12, flexShrink:0, color: p.status==='ok' ? 'var(--green)' : p.status==='error' ? 'var(--red-light)' : 'var(--gold)' }}>
+                    {p.status==='ok' ? '✓ listo' : p.status==='error' ? '✗ ' + p.error : '⟳ procesando…'}
+                  </span>
+                )}
+                {!loading && !p && (
+                  <button type="button" onClick={() => removeFile(f.name)} style={{ background:'none', border:'none', color:'var(--text-muted)', cursor:'pointer', fontSize:14, flexShrink:0 }}>✕</button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {files.length > 0 && !progress.length && (
         <div style={{ background:'rgba(201,168,76,0.06)', border:'1px solid var(--border)', borderRadius:3, padding:'10px 14px', fontSize:13, color:'var(--text-dim)' }}>
-          La IA extraerá proveedor, importe, fecha y categoría automáticamente.
+          La IA extraerá proveedor, importe, fecha y categoría de cada archivo automáticamente.
         </div>
       )}
 
       {error && <div style={{ background:'rgba(204,53,32,0.1)', border:'1px solid rgba(204,53,32,0.3)', borderRadius:3, padding:'10px 14px', color:'var(--red-light)', fontSize:13 }}>{error}</div>}
 
       <div style={{ display:'flex', gap:10 }}>
-        <button className="btn btn-primary" type="submit" disabled={loading || !file}>{loading ? 'Procesando con IA…' : 'Subir y procesar'}</button>
+        <button className="btn btn-primary" type="submit" disabled={loading || !files.length}>
+          {loading
+            ? `Procesando ${progress.length}/${files.length}…`
+            : files.length > 1 ? `Subir y procesar (${files.length} archivos)` : 'Subir y procesar'}
+        </button>
         <button className="btn btn-ghost" type="button" onClick={onClose}>Cancelar</button>
       </div>
     </form>
@@ -169,7 +227,7 @@ export default function Transactions() {
   const [txs, setTxs]             = useState([])
   const [cats, setCats]           = useState([])
   const [loading, setLoading]     = useState(true)
-  const [mode, setMode]           = useState(null) // null | 'manual' | 'upload'
+  const [mode, setMode]           = useState(null)
   const [filter, setFilter]       = useState({ type:'', month:'', year:'' })
 
   const today = new Date()
@@ -194,7 +252,6 @@ export default function Transactions() {
 
   return (
     <div className="fade-up">
-      {/* Header */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:28 }}>
         <div>
           <div className="eyebrow" style={{ marginBottom:8 }}>Movimientos</div>
@@ -210,7 +267,6 @@ export default function Transactions() {
         </div>
       </div>
 
-      {/* Formularios */}
       {mode && (
         <div className="card" style={{ marginBottom:24 }}>
           <div style={{ fontSize:13, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--gold)', marginBottom:20 }}>
@@ -222,7 +278,6 @@ export default function Transactions() {
         </div>
       )}
 
-      {/* Filtros */}
       <div style={{ display:'flex', gap:10, marginBottom:20 }}>
         <select className="input" style={{ width:'auto' }} value={filter.type} onChange={e => setFilter(f=>({...f, type:e.target.value}))}>
           <option value="">Todos</option>
@@ -243,7 +298,6 @@ export default function Transactions() {
         )}
       </div>
 
-      {/* Lista */}
       <div className="card" style={{ padding:0, overflow:'hidden' }}>
         {loading ? (
           <div style={{ padding:40, textAlign:'center', color:'var(--text-muted)' }}>Cargando…</div>
