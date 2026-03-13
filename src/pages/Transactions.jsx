@@ -287,13 +287,12 @@ export default function Transactions() {
       })
       const ws = XLSX.utils.aoa_to_sheet(wsData, { cellDates: true })
       // Formato fecha columnas D y F
-      const dateFmt = 'dd/mm/yyyy'
       all.forEach((_, i) => {
         const r = i+1
         const dCell = XLSX.utils.encode_cell({r, c:3})
         const pCell = XLSX.utils.encode_cell({r, c:5})
-        if (ws[dCell]) ws[dCell].z = 'dd-mmm-yy'
-        if (ws[pCell]) ws[pCell].z = 'mmm-yy'
+        if (ws[dCell]) { ws[dCell].t = 'd'; ws[dCell].z = 'dd-mmm-yy' }
+        if (ws[pCell]) { ws[pCell].t = 'd'; ws[pCell].z = 'mmm-yy' }
       })
       ws['!cols'] = [4,30,10,12,20,10,15,10,8,10,12,10,10,20,10,10,14,20,18,20].map(w => ({ wch: w }))
       const wb = XLSX.utils.book_new()
