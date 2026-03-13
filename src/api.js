@@ -61,6 +61,7 @@ export const api = {
   // Reportes
   getReports:      ()          => request('GET',  '/reports/'),
   generateReport:  (year, m)   => request('POST', `/reports/generate/${year}/${m}`),
+  deleteAllReports: ()          => request('DELETE', '/reports/all'),
 
   // Utils
   setToken, clearToken, getToken,
