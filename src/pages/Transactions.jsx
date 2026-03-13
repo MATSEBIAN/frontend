@@ -254,24 +254,52 @@ export default function Transactions() {
   const exportExcel = async () => {
     try {
       const all = await api.getTransactions({})
-      const rows = all.map(tx => ({
-        'Fecha':        tx.transaction_date,
-        'Tipo':         tx.type === 'income' ? 'Ingreso' : 'Gasto',
-        'Descripción':  tx.description || '',
-        'Proveedor/Cliente': tx.vendor_client || '',
-        'Categoría':    tx.category || '',
-        'Método':       PM_LABELS[tx.payment_method] || tx.payment_method || '',
-        'Origen':       tx.source === 'manual' ? 'Manual' : 'Documento',
-        'Importe (€)':  tx.type === 'income' ? Number(tx.amount) : -Number(tx.amount),
-        'IVA (€)':      Number(tx.tax_amount || 0),
-        'Notas':        tx.notes || '',
-      }))
-      const ws = XLSX.utils.json_to_sheet(rows)
-      ws['!cols'] = [10,12,30,25,15,12,12,14,10,20].map(w => ({ wch: w }))
+      const headers = ['#','PROVEEDOR','LOCAL','FECHA','FACTURA','P AND L','CONCEPTO','BASE','IVA','TOTAL FACT','ALBARAN/IRPF','REVISADO','PAGADO','NOTAS','NOTA 2','NOTA 3','CIF','NO FACTURA','REGISTRO','ACREEDOR']
+      const wsData = [headers]
+      all.forEach((tx, i) => {
+        const row = i + 2 // excel row (1=header)
+        const d = new Date(tx.transaction_date)
+        const pAndL = new Date(d.getFullYear(), d.getMonth(), 1)
+        const base = tx.type === 'expense' ? -Math.abs(Number(tx.amount) - Number(tx.tax_amount||0)) : Number(tx.amount)
+        const iva  = tx.type === 'expense' ? -Math.abs(Number(tx.tax_amount||0)) : 0
+        wsData.push([
+          i+1,
+          tx.vendor_client || tx.description || '',
+          'Madrid',
+          d,
+          tx.description || '',
+          pAndL,
+          '',
+          base,
+          iva,
+          { f: `I${row}+H${row}` },
+          '',
+          '',
+          '',
+          tx.notes || '',
+          '',
+          '',
+          '',
+          '',
+          new Date().toLocaleString('es-ES'),
+          'Sabores Adelitas SL',
+        ])
+      })
+      const ws = XLSX.utils.aoa_to_sheet(wsData)
+      // Formato fecha columnas D y F
+      const dateFmt = 'dd/mm/yyyy'
+      all.forEach((_, i) => {
+        const r = i+1
+        const dCell = XLSX.utils.encode_cell({r, c:3})
+        const pCell = XLSX.utils.encode_cell({r, c:5})
+        if (ws[dCell]) ws[dCell].z = dateFmt
+        if (ws[pCell]) ws[pCell].z = dateFmt
+      })
+      ws['!cols'] = [4,30,10,12,20,10,15,10,8,10,12,10,10,20,10,10,14,20,18,20].map(w => ({ wch: w }))
       const wb = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(wb, ws, 'Movimientos')
+      XLSX.utils.book_append_sheet(wb, ws, 'Facturas')
       const month = new Date().toISOString().slice(0,7)
-      XLSX.writeFile(wb, `Las_Adelitas_Movimientos_${month}.xlsx`)
+      XLSX.writeFile(wb, `facturas_${month}.xlsx`)
     } catch(e) { alert('Error al exportar: ' + e.message) }
   }
 
