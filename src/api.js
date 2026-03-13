@@ -21,6 +21,7 @@ async function request(method, path, body = null, isForm = false) {
   if (!isForm) headers['Content-Type'] = 'application/json'
 
   const res = await fetch(`${BASE}${path}`, {
+    credentials: 'include',
     method,
     headers,
     body: isForm ? body : (body ? JSON.stringify(body) : null),
