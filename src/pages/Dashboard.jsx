@@ -73,9 +73,9 @@ export default function Dashboard({ company }) {
         <>
           {/* KPIs principales */}
           <div style={{ display:'flex', gap:16, marginBottom:24 }}>
-            <KPI label="Ingresos" value={s.total_income} color="var(--green)"
+            <KPI label="Ingresos" value={s.income ?? s.total_income} color="var(--green)"
               sub={s.income_vs_prev != null ? `${s.income_vs_prev > 0 ? '+':''}${s.income_vs_prev?.toFixed(1)}% vs mes anterior` : undefined} />
-            <KPI label="Gastos" value={s.total_expenses} color="var(--red-light)" />
+            <KPI label="Gastos" value={s.expenses ?? s.total_expenses} color="var(--red-light)" />
             <KPI label="Resultado neto" value={s.net} color={s.net >= 0 ? 'var(--gold)' : 'var(--red-light)'}
               sub={`Margen: ${s.margin_pct?.toFixed(1)}%`} />
           </div>
