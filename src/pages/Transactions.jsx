@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import * as XLSX from 'xlsx'
 import { api } from '../api.js'
 
 const PM_LABELS = { cash:'Efectivo', card:'Tarjeta', transfer:'Transferencia', delivery_app:'App delivery', other:'Otro' }
@@ -250,6 +251,30 @@ export default function Transactions() {
     await api.deleteTransaction(id); load()
   }
 
+  const exportExcel = async () => {
+    try {
+      const all = await api.getTransactions({})
+      const rows = all.map(tx => ({
+        'Fecha':        tx.transaction_date,
+        'Tipo':         tx.type === 'income' ? 'Ingreso' : 'Gasto',
+        'Descripción':  tx.description || '',
+        'Proveedor/Cliente': tx.vendor_client || '',
+        'Categoría':    tx.category || '',
+        'Método':       PM_LABELS[tx.payment_method] || tx.payment_method || '',
+        'Origen':       tx.source === 'manual' ? 'Manual' : 'Documento',
+        'Importe (€)':  tx.type === 'income' ? Number(tx.amount) : -Number(tx.amount),
+        'IVA (€)':      Number(tx.tax_amount || 0),
+        'Notas':        tx.notes || '',
+      }))
+      const ws = XLSX.utils.json_to_sheet(rows)
+      ws['!cols'] = [10,12,30,25,15,12,12,14,10,20].map(w => ({ wch: w }))
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Movimientos')
+      const month = new Date().toISOString().slice(0,7)
+      XLSX.writeFile(wb, `Las_Adelitas_Movimientos_${month}.xlsx`)
+    } catch(e) { alert('Error al exportar: ' + e.message) }
+  }
+
   return (
     <div className="fade-up">
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:28 }}>
@@ -258,6 +283,9 @@ export default function Transactions() {
           <h1 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:32, fontWeight:300 }}>Ingresos y Gastos</h1>
         </div>
         <div style={{ display:'flex', gap:8 }}>
+          <button className="btn btn-ghost" onClick={exportExcel} style={{ fontSize:13 }}>
+            ⬇ Excel
+          </button>
           <button className="btn btn-ghost" onClick={() => setMode(mode==='upload' ? null : 'upload')}>
             📄 Subir factura
           </button>
