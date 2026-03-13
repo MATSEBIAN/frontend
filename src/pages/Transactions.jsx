@@ -245,10 +245,24 @@ export default function Transactions() {
   useEffect(() => { api.getCategories().then(setCats) }, [])
   useEffect(() => { load() }, [filter])
 
+  const [selected, setSelected] = useState(new Set())
+  const toggleSelect = (id) => setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const toggleAll = () => setSelected(s => s.size === txs.length ? new Set() : new Set(txs.map(t => t.id)))
+
   const saved = () => { setMode(null); load() }
   const del = async (id) => {
     if (!confirm('¿Eliminar este movimiento?')) return
     await api.deleteTransaction(id); load()
+  }
+  const delSelected = async () => {
+    if (!selected.size || !confirm(`¿Eliminar ${selected.size} movimiento(s)?`)) return
+    await Promise.all([...selected].map(id => api.deleteTransaction(id)))
+    setSelected(new Set()); load()
+  }
+  const delAll = async () => {
+    if (!confirm(`¿Eliminar TODOS los ${txs.length} movimientos? Esta acción no se puede deshacer.`)) return
+    await Promise.all(txs.map(t => api.deleteTransaction(t.id)))
+    setSelected(new Set()); load()
   }
 
   const exportExcel = async () => {
@@ -315,6 +329,14 @@ export default function Transactions() {
           <button className="btn btn-ghost" onClick={exportExcel} style={{ fontSize:13 }}>
             ⬇ Excel
           </button>
+          {selected.size > 0 && (
+            <button className="btn btn-ghost" onClick={delSelected} style={{ fontSize:13, color:'var(--red-light)', borderColor:'var(--red-light)' }}>
+              🗑 Borrar {selected.size} seleccionada(s)
+            </button>
+          )}
+          <button className="btn btn-ghost" onClick={delAll} style={{ fontSize:13, color:'var(--text-muted)' }}>
+            🗑 Borrar todo
+          </button>
           <button className="btn btn-ghost" onClick={() => setMode(mode==='upload' ? null : 'upload')}>
             📄 Subir factura
           </button>
@@ -367,6 +389,9 @@ export default function Transactions() {
           <table style={{ width:'100%', borderCollapse:'collapse' }}>
             <thead>
               <tr style={{ borderBottom:'1px solid var(--border)' }}>
+                <th style={{ padding:'12px 16px', width:32 }}>
+                  <input type="checkbox" checked={txs.length > 0 && selected.size === txs.length} onChange={toggleAll} style={{ cursor:'pointer', accentColor:'var(--gold)' }} />
+                </th>
                 {['Fecha','Descripción','Categoría','Método','Origen','Importe',''].map(h => (
                   <th key={h} style={{ padding:'12px 16px', textAlign:h==='Importe'||h===''?'right':'left', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--text-muted)', fontWeight:400 }}>{h}</th>
                 ))}
@@ -377,6 +402,9 @@ export default function Transactions() {
                 <tr key={tx.id} style={{ borderBottom: i < txs.length-1 ? '1px solid var(--border-sub)' : 'none', transition:'background 0.15s' }}
                   onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.02)'}
                   onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                  <td style={{ padding:'12px 16px', width:32 }}>
+                    <input type="checkbox" checked={selected.has(tx.id)} onChange={() => toggleSelect(tx.id)} style={{ cursor:'pointer', accentColor:'var(--gold)' }} />
+                  </td>
                   <td style={{ padding:'12px 16px', fontSize:12, color:'var(--text-dim)' }}>{tx.transaction_date}</td>
                   <td style={{ padding:'12px 16px', fontSize:13, maxWidth:220 }}>
                     <div style={{ color:'var(--cream)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{tx.description || tx.vendor_client || '—'}</div>
