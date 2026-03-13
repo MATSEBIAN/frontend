@@ -260,6 +260,7 @@ export default function Transactions() {
         const row = i + 2 // excel row (1=header)
         const d = new Date(tx.transaction_date)
         const pAndL = new Date(d.getFullYear(), d.getMonth(), 1)
+        const toSerial = dt => Math.round((dt - new Date(1899,11,30)) / 86400000)
         const base = tx.type === 'expense' ? -Math.abs(Number(tx.amount) - Number(tx.tax_amount||0)) : Number(tx.amount)
         const iva  = tx.type === 'expense' ? -Math.abs(Number(tx.tax_amount||0)) : 0
         wsData.push([
@@ -286,13 +287,14 @@ export default function Transactions() {
         ])
       })
       const ws = XLSX.utils.aoa_to_sheet(wsData, { cellDates: true })
-      // Formato fecha columnas D y F
-      all.forEach((_, i) => {
+      all.forEach((tx, i) => {
         const r = i+1
+        const d2 = new Date(tx.transaction_date)
         const dCell = XLSX.utils.encode_cell({r, c:3})
         const pCell = XLSX.utils.encode_cell({r, c:5})
-        if (ws[dCell]) { ws[dCell].t = 'd'; ws[dCell].z = 'dd-mmm-yy' }
-        if (ws[pCell]) { ws[pCell].t = 'd'; ws[pCell].z = 'mmm-yy' }
+        if (ws[dCell]) { ws[dCell].t = 'n'; ws[dCell].v = Math.round((d2 - new Date(1899,11,30))/86400000); ws[dCell].z = 'dd-mmm-yy' }
+        const p = new Date(d2.getFullYear(), d2.getMonth(), 1)
+        ws[pCell] = { t: 'n', v: Math.round((p - new Date(1899,11,30))/86400000), z: 'mmm-yy' }
       })
       ws['!cols'] = [4,30,10,12,20,10,15,10,8,10,12,10,10,20,10,10,14,20,18,20].map(w => ({ wch: w }))
       const wb = XLSX.utils.book_new()
