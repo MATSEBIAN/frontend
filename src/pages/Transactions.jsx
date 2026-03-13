@@ -131,6 +131,7 @@ function UploadForm({ onSave, onClose }) {
         const fd = new FormData()
         fd.append('file', file)
         fd.append('type', type)
+        fd.append('filename', file.name.replace(/\.[^/.]+$/, ''))
         await api.uploadDocument(fd)
         results.push({ name: file.name, status: 'ok' })
       } catch(err) {
