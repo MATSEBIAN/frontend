@@ -27,7 +27,7 @@ export default function Reports() {
         const filtered = prev.filter(x => !(x.month===r.month && x.year===r.year))
         return [r, ...filtered].sort((a,b) => b.year-a.year || b.month-a.month)
       })
-      setSelected(r)
+      setSelected(norm(r))
     } catch(e) { alert(e.message) }
     finally { setGen(false) }
   }
