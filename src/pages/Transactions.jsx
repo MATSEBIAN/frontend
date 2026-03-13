@@ -259,8 +259,7 @@ export default function Transactions() {
       all.forEach((tx, i) => {
         const row = i + 2 // excel row (1=header)
         const d = new Date(tx.transaction_date)
-        const monthNames = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
-        const pAndL = `${monthNames[d.getMonth()]}-${String(d.getFullYear()).slice(2)}`
+        const pAndL = new Date(d.getFullYear(), d.getMonth(), 1)
         const base = tx.type === 'expense' ? -Math.abs(Number(tx.amount) - Number(tx.tax_amount||0)) : Number(tx.amount)
         const iva  = tx.type === 'expense' ? -Math.abs(Number(tx.tax_amount||0)) : 0
         wsData.push([
@@ -282,7 +281,7 @@ export default function Transactions() {
           '',
           tx.cif_proveedor || '',
           tx.num_factura || '',
-          new Date().toLocaleString('es-ES'),
+          tx.created_at ? new Date(tx.created_at).toLocaleString('es-ES') : new Date().toLocaleString('es-ES'),
           tx.acreedor || 'Sabores Adelitas SL',
         ])
       })
@@ -293,8 +292,8 @@ export default function Transactions() {
         const r = i+1
         const dCell = XLSX.utils.encode_cell({r, c:3})
         const pCell = XLSX.utils.encode_cell({r, c:5})
-        if (ws[dCell]) ws[dCell].z = dateFmt
-        if (ws[pCell]) ws[pCell].z = dateFmt
+        if (ws[dCell]) ws[dCell].z = 'dd-mmm-yy'
+        if (ws[pCell]) ws[pCell].z = 'mmm-yy'
       })
       ws['!cols'] = [4,30,10,12,20,10,15,10,8,10,12,10,10,20,10,10,14,20,18,20].map(w => ({ wch: w }))
       const wb = XLSX.utils.book_new()
