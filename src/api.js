@@ -1,4 +1,4 @@
-const BASE = '/api'
+const BASE = 'https://backend-production-1c45.up.railway.app/api'
 
 function getToken() {
   return localStorage.getItem('matsebian_token')
