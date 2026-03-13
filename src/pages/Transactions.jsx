@@ -4,6 +4,27 @@ import { api } from '../api.js'
 
 const PM_LABELS = { cash:'Efectivo', card:'Tarjeta', transfer:'Transferencia', delivery_app:'App delivery', other:'Otro' }
 
+const thS = { padding:'6px 10px', fontSize:9, letterSpacing:'0.1em', textTransform:'uppercase',
+  color:'var(--text-muted)', fontWeight:500, whiteSpace:'nowrap',
+  borderBottom:'1px solid var(--border)', background:'rgba(0,0,0,0.2)', position:'sticky', top:0 }
+const tdS = { padding:'4px 8px', fontSize:11, color:'var(--cream)', whiteSpace:'nowrap',
+  borderBottom:'1px solid rgba(255,255,255,0.04)' }
+
+function ECell({ tx, field, w, onSave, type='text', right=false }) {
+  const [v, setV] = useState(tx[field] || '')
+  useEffect(() => setV(tx[field] || ''), [tx.id, tx[field]])
+  return (
+    <td style={{ ...tdS, minWidth:w, maxWidth:w, overflow:'hidden', padding:'4px 8px' }}>
+      <input type={type} value={v} onChange={e => setV(e.target.value)}
+        onBlur={() => { if (String(v) !== String(tx[field] || '')) onSave(field, v) }}
+        onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
+        style={{ background:'transparent', border:'none', width:'100%', color:'var(--cream)',
+          fontSize:11, fontFamily:'Jost,sans-serif', padding:0, outline:'none',
+          textAlign: right ? 'right' : 'left' }} />
+    </td>
+  )
+}
+
 function ManualForm({ categories, onSave, onClose }) {
   const [form, setForm] = useState({
     type:'income', amount:'', description:'', payment_method:'cash',
@@ -250,6 +271,18 @@ export default function Transactions() {
   const toggleSelect = (id) => setSelected(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
   const toggleAll = () => setSelected(s => s.size === txs.length ? new Set() : new Set(txs.map(t => t.id)))
 
+  const API = import.meta.env.VITE_API_URL
+  const authH = () => ({ 'Content-Type':'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` })
+
+  const patchTx = async (id, field, val) => {
+    setTxs(prev => prev.map(t => t.id === id ? { ...t, [field]: val } : t))
+    try {
+      await fetch(`${API}/api/transactions/${id}`, {
+        method: 'PATCH', headers: authH(), body: JSON.stringify({ [field]: val })
+      })
+    } catch(e) { console.error('patch error', e) }
+  }
+
   const saved = () => { setMode(null); load() }
   const del = async (id) => {
     if (!confirm('¿Eliminar este movimiento?')) return
@@ -389,7 +422,7 @@ export default function Transactions() {
         )}
       </div>
 
-      <div className="card" style={{ padding:0, overflow:'hidden' }}>
+      <div className="card" style={{ padding:0, overflow:'auto' }}>
         {loading ? (
           <div style={{ padding:40, textAlign:'center', color:'var(--text-muted)' }}>Cargando…</div>
         ) : txs.length === 0 ? (
@@ -398,59 +431,91 @@ export default function Transactions() {
             <span style={{ color:'var(--gold)', cursor:'pointer' }} onClick={() => setMode('manual')}>Registra el primero →</span>
           </div>
         ) : (
-          <table style={{ width:'100%', borderCollapse:'collapse' }}>
+          <table style={{ borderCollapse:'collapse', tableLayout:'fixed', minWidth:2100 }}>
             <thead>
-              <tr style={{ borderBottom:'1px solid var(--border)' }}>
-                <th style={{ padding:'12px 16px', width:32 }}>
-                  <input type="checkbox" checked={txs.length > 0 && selected.size === txs.length} onChange={toggleAll} style={{ cursor:'pointer', accentColor:'var(--gold)' }} />
+              <tr>
+                <th style={{ ...thS, width:32, textAlign:'center' }}>
+                  <input type="checkbox" checked={txs.length > 0 && selected.size === txs.length} onChange={toggleAll} style={{ cursor:'pointer', accentColor:'var(--gold)' }}/>
                 </th>
-                {['Fecha','Descripción','Categoría','Método','Origen','Importe',''].map(h => (
-                  <th key={h} style={{ padding:'12px 16px', textAlign:h==='Importe'||h===''?'right':'left', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--text-muted)', fontWeight:400 }}>{h}</th>
-                ))}
+                <th style={{ ...thS, width:30 }}>#</th>
+                <th style={{ ...thS, width:190 }}>PROVEEDOR</th>
+                <th style={{ ...thS, width:80 }}>LOCAL</th>
+                <th style={{ ...thS, width:105 }}>FECHA</th>
+                <th style={{ ...thS, width:150 }}>FACTURA</th>
+                <th style={{ ...thS, width:75 }}>P AND L</th>
+                <th style={{ ...thS, width:120 }}>CONCEPTO</th>
+                <th style={{ ...thS, width:85, textAlign:'right' }}>BASE</th>
+                <th style={{ ...thS, width:75, textAlign:'right' }}>IVA</th>
+                <th style={{ ...thS, width:90, textAlign:'right' }}>TOTAL FACT</th>
+                <th style={{ ...thS, width:100 }}>ALBARAN/IRPF</th>
+                <th style={{ ...thS, width:75 }}>REVISADO</th>
+                <th style={{ ...thS, width:75 }}>PAGADO</th>
+                <th style={{ ...thS, width:140 }}>NOTAS</th>
+                <th style={{ ...thS, width:85 }}>NOTA 2</th>
+                <th style={{ ...thS, width:85 }}>NOTA 3</th>
+                <th style={{ ...thS, width:105 }}>CIF</th>
+                <th style={{ ...thS, width:150 }}>NO FACTURA</th>
+                <th style={{ ...thS, width:130 }}>REGISTRO</th>
+                <th style={{ ...thS, width:150 }}>ACREEDOR</th>
+                <th style={{ ...thS, width:165 }}>CATEGORÍA</th>
+                <th style={{ ...thS, width:32 }}></th>
               </tr>
             </thead>
             <tbody>
-              {txs.map((tx, i) => (
-                <tr key={tx.id} style={{ borderBottom: i < txs.length-1 ? '1px solid var(--border-sub)' : 'none', transition:'background 0.15s' }}
-                  onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.02)'}
-                  onMouseLeave={e => e.currentTarget.style.background='transparent'}>
-                  <td style={{ padding:'12px 16px', width:32 }}>
-                    <input type="checkbox" checked={selected.has(tx.id)} onChange={() => toggleSelect(tx.id)} style={{ cursor:'pointer', accentColor:'var(--gold)' }} />
-                  </td>
-                  <td style={{ padding:'12px 16px', fontSize:12, color:'var(--text-dim)' }}>{tx.transaction_date}</td>
-                  <td style={{ padding:'12px 16px', fontSize:13, maxWidth:220 }}>
-                    <div style={{ color:'var(--cream)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{tx.description || tx.vendor_client || '—'}</div>
-                    {tx.vendor_client && tx.description && <div style={{ fontSize:11, color:'var(--text-muted)' }}>{tx.vendor_client}</div>}
-                  </td>
-                  <td style={{ padding:'4px 8px', fontSize:12 }}>
-                    <select value={tx.category_id || ''} onChange={e => updateCategory(tx.id, e.target.value)}
-                      style={{ background:'transparent', border:'1px solid transparent', color:'var(--text-dim)', fontSize:11,
-                        borderRadius:3, padding:'4px 6px', cursor:'pointer', width:'100%', maxWidth:180,
-                        fontFamily:'Jost, sans-serif' }}
-                      onMouseEnter={e => e.target.style.borderColor='var(--border)'}
-                      onMouseLeave={e => e.target.style.borderColor='transparent'}>
-                      <option value="">— sin categoría —</option>
-                      {cats.filter(c => c.type === 'expense' || c.type === 'both').map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td style={{ padding:'12px 16px', fontSize:12, color:'var(--text-dim)' }}>{PM_LABELS[tx.payment_method] || tx.payment_method}</td>
-                  <td style={{ padding:'12px 16px' }}>
-                    <span className={`badge badge-${tx.source}`}>{tx.source === 'manual' ? 'Manual' : 'Doc'}</span>
-                  </td>
-                  <td style={{ padding:'12px 16px', textAlign:'right' }}>
-                    <span style={{ fontFamily:'Cormorant Garamond, serif', fontSize:18, fontWeight:300,
-                      color: tx.type==='income' ? 'var(--green)' : 'var(--red-light)' }}>
-                      {tx.type==='income' ? '+' : '-'}€{Number(tx.amount).toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2})}
-                    </span>
-                  </td>
-                  <td style={{ padding:'12px 16px', textAlign:'right' }}>
-                    <button onClick={() => del(tx.id)} style={{ background:'none', border:'none', color:'var(--text-muted)', cursor:'pointer', fontSize:14, opacity:0.5, transition:'opacity 0.15s' }}
-                      onMouseEnter={e => e.currentTarget.style.opacity='1'} onMouseLeave={e => e.currentTarget.style.opacity='0.5'}>✕</button>
-                  </td>
-                </tr>
-              ))}
+              {txs.map((tx, i) => {
+                const d = new Date(tx.transaction_date)
+                const mn = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+                const pAndL = `${mn[d.getMonth()]}-${String(d.getFullYear()).slice(2)}`
+                const base  = tx.type === 'expense' ? -(Number(tx.amount) - Number(tx.tax_amount||0)) : Number(tx.amount)
+                const iva   = tx.type === 'expense' ? -Number(tx.tax_amount||0) : 0
+                const total = tx.type === 'expense' ? -Number(tx.amount) : Number(tx.amount)
+                const save  = (field, val) => patchTx(tx.id, field, val)
+                return (
+                  <tr key={tx.id}
+                    onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.025)'}
+                    onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                    <td style={{ ...tdS, width:32, textAlign:'center' }}>
+                      <input type="checkbox" checked={selected.has(tx.id)} onChange={() => toggleSelect(tx.id)} style={{ cursor:'pointer', accentColor:'var(--gold)' }}/>
+                    </td>
+                    <td style={{ ...tdS, color:'var(--text-muted)', width:30 }}>{i+1}</td>
+                    <ECell tx={tx} field="vendor_client" w={190} onSave={save}/>
+                    <ECell tx={tx} field="local" w={80} onSave={save}/>
+                    <ECell tx={tx} field="transaction_date" w={105} type="date" onSave={save}/>
+                    <ECell tx={tx} field="description" w={150} onSave={save}/>
+                    <td style={{ ...tdS, color:'var(--text-dim)', width:75 }}>{pAndL}</td>
+                    <ECell tx={tx} field="concepto" w={120} onSave={save}/>
+                    <td style={{ ...tdS, textAlign:'right', width:85, color: base < 0 ? 'var(--red-light)' : 'var(--green)' }}>{base.toFixed(2)}</td>
+                    <td style={{ ...tdS, textAlign:'right', width:75, color:'var(--text-dim)' }}>{iva.toFixed(2)}</td>
+                    <td style={{ ...tdS, textAlign:'right', width:90, fontWeight:500, color: total < 0 ? 'var(--red-light)' : 'var(--green)' }}>{total.toFixed(2)}</td>
+                    <ECell tx={tx} field="albaran_irpf" w={100} onSave={save}/>
+                    <ECell tx={tx} field="revisado" w={75} onSave={save}/>
+                    <ECell tx={tx} field="pagado" w={75} onSave={save}/>
+                    <ECell tx={tx} field="notes" w={140} onSave={save}/>
+                    <ECell tx={tx} field="nota2" w={85} onSave={save}/>
+                    <ECell tx={tx} field="nota3" w={85} onSave={save}/>
+                    <ECell tx={tx} field="cif_proveedor" w={105} onSave={save}/>
+                    <ECell tx={tx} field="num_factura" w={150} onSave={save}/>
+                    <td style={{ ...tdS, color:'var(--text-muted)', fontSize:10, width:130 }}>{tx.created_at ? new Date(tx.created_at).toLocaleString('es-ES') : ''}</td>
+                    <ECell tx={tx} field="acreedor" w={150} onSave={save}/>
+                    <td style={{ ...tdS, width:165 }}>
+                      <select value={tx.category_id || ''} onChange={e => updateCategory(tx.id, e.target.value)}
+                        style={{ background:'transparent', border:'1px solid transparent', color:'var(--text-dim)', fontSize:10,
+                          borderRadius:3, padding:'2px 4px', cursor:'pointer', width:'100%', fontFamily:'Jost,sans-serif' }}
+                        onMouseEnter={e => e.target.style.borderColor='var(--border)'}
+                        onMouseLeave={e => e.target.style.borderColor='transparent'}>
+                        <option value="">—</option>
+                        {cats.filter(c => c.type==='expense' || c.type==='both').map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td style={{ ...tdS, textAlign:'right', width:32 }}>
+                      <button onClick={() => del(tx.id)} style={{ background:'none', border:'none', color:'var(--text-muted)', cursor:'pointer', fontSize:12, opacity:0.4, transition:'opacity 0.15s' }}
+                        onMouseEnter={e => e.currentTarget.style.opacity='1'} onMouseLeave={e => e.currentTarget.style.opacity='0.4'}>✕</button>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         )}
