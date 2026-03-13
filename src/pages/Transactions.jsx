@@ -10,12 +10,16 @@ const thS = { padding:'6px 10px', fontSize:9, letterSpacing:'0.1em', textTransfo
 const tdS = { padding:'4px 8px', fontSize:11, color:'var(--cream)', whiteSpace:'nowrap',
   borderBottom:'1px solid rgba(255,255,255,0.04)' }
 
-function ECell({ tx, field, w, onSave, type='text', right=false }) {
+function ECell({ tx, field, w, onSave, onLiveUpdate, type='text', right=false }) {
   const [v, setV] = useState(tx[field] || '')
   useEffect(() => setV(tx[field] || ''), [tx.id, tx[field]])
+  const handleChange = e => {
+    setV(e.target.value)
+    if (onLiveUpdate) onLiveUpdate(field, e.target.value)
+  }
   return (
     <td style={{ ...tdS, minWidth:w, maxWidth:w, overflow:'hidden', padding:'4px 8px' }}>
-      <input type={type} value={v} onChange={e => setV(e.target.value)}
+      <input type={type} value={v} onChange={handleChange}
         onBlur={() => { if (String(v) !== String(tx[field] || '')) onSave(field, v) }}
         onKeyDown={e => { if (e.key === 'Enter') e.target.blur() }}
         style={{ background:'transparent', border:'none', width:'100%', color:'var(--cream)',
@@ -469,6 +473,7 @@ export default function Transactions() {
                 const iva   = tx.type === 'expense' ? -Number(tx.tax_amount||0) : 0
                 const total = tx.type === 'expense' ? -Number(tx.amount) : Number(tx.amount)
                 const save  = (field, val) => patchTx(tx.id, field, val)
+                const live  = (field, val) => setTxs(prev => prev.map(t => t.id === tx.id ? { ...t, [field]: val } : t))
                 return (
                   <tr key={tx.id}
                     onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.025)'}
@@ -477,10 +482,10 @@ export default function Transactions() {
                       <input type="checkbox" checked={selected.has(tx.id)} onChange={() => toggleSelect(tx.id)} style={{ cursor:'pointer', accentColor:'var(--gold)' }}/>
                     </td>
                     <td style={{ ...tdS, color:'var(--text-muted)', width:30 }}>{i+1}</td>
-                    <ECell tx={tx} field="vendor_client" w={190} onSave={save}/>
-                    <ECell tx={tx} field="local" w={80} onSave={save}/>
+                    <ECell tx={tx} field="vendor_client" w={190} onSave={save} onLiveUpdate={live}/>
+                    <ECell tx={tx} field="local" w={80} onSave={save} onLiveUpdate={live}/>
                     <ECell tx={tx} field="transaction_date" w={105} type="date" onSave={save}/>
-                    <ECell tx={tx} field="description" w={150} onSave={save}/>
+                    <ECell tx={tx} field="description" w={150} onSave={save} onLiveUpdate={live}/>
                     <td style={{ ...tdS, color:'var(--text-dim)', width:75 }}>{pAndL}</td>
                     <td style={{ ...tdS, width:165 }}>
                       <select value={tx.category_id || ''} onChange={e => { updateCategory(tx.id, e.target.value); patchTx(tx.id, 'category_id', e.target.value) }}
@@ -497,16 +502,16 @@ export default function Transactions() {
                     <td style={{ ...tdS, textAlign:'right', width:85, color: base < 0 ? 'var(--red-light)' : 'var(--green)' }}>{base.toFixed(2)}</td>
                     <td style={{ ...tdS, textAlign:'right', width:75, color:'var(--text-dim)' }}>{iva.toFixed(2)}</td>
                     <td style={{ ...tdS, textAlign:'right', width:90, fontWeight:500, color: total < 0 ? 'var(--red-light)' : 'var(--green)' }}>{total.toFixed(2)}</td>
-                    <ECell tx={tx} field="albaran_irpf" w={100} onSave={save}/>
-                    <ECell tx={tx} field="revisado" w={75} onSave={save}/>
-                    <ECell tx={tx} field="pagado" w={75} onSave={save}/>
-                    <ECell tx={tx} field="notes" w={140} onSave={save}/>
-                    <ECell tx={tx} field="nota2" w={85} onSave={save}/>
-                    <ECell tx={tx} field="nota3" w={85} onSave={save}/>
-                    <ECell tx={tx} field="cif_proveedor" w={105} onSave={save}/>
-                    <ECell tx={tx} field="num_factura" w={150} onSave={save}/>
+                    <ECell tx={tx} field="albaran_irpf" w={100} onSave={save} onLiveUpdate={live}/>
+                    <ECell tx={tx} field="revisado" w={75} onSave={save} onLiveUpdate={live}/>
+                    <ECell tx={tx} field="pagado" w={75} onSave={save} onLiveUpdate={live}/>
+                    <ECell tx={tx} field="notes" w={140} onSave={save} onLiveUpdate={live}/>
+                    <ECell tx={tx} field="nota2" w={85} onSave={save} onLiveUpdate={live}/>
+                    <ECell tx={tx} field="nota3" w={85} onSave={save} onLiveUpdate={live}/>
+                    <ECell tx={tx} field="cif_proveedor" w={105} onSave={save} onLiveUpdate={live}/>
+                    <ECell tx={tx} field="num_factura" w={150} onSave={save} onLiveUpdate={live}/>
                     <td style={{ ...tdS, color:'var(--text-muted)', fontSize:10, width:130 }}>{tx.created_at ? new Date(tx.created_at).toLocaleString('es-ES') : ''}</td>
-                    <ECell tx={tx} field="acreedor" w={150} onSave={save}/>
+                    <ECell tx={tx} field="acreedor" w={150} onSave={save} onLiveUpdate={live}/>
 
                     <td style={{ ...tdS, textAlign:'right', width:32 }}>
                       <button onClick={() => del(tx.id)} style={{ background:'none', border:'none', color:'var(--text-muted)', cursor:'pointer', fontSize:12, opacity:0.4, transition:'opacity 0.15s' }}
