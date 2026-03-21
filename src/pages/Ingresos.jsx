@@ -6,6 +6,7 @@ export default function Ingresos() {
   const [txs, setTxs]         = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter]   = useState({ month:'', year:'' })
+  const [selected, setSelected] = useState([])
 
   const load = async () => {
     setLoading(true)
@@ -23,6 +24,19 @@ export default function Ingresos() {
 
   const saved = () => { setMode(null); load() }
 
+  const delSelected = async () => {
+    if (!selected.length) return
+    if (!window.confirm(`¿Borrar ${selected.length} movimiento(s)?`)) return
+    for (const id of selected) {
+      try { await api.deleteTransaction(id) } catch(e) {}
+    }
+    setSelected([])
+    load()
+  }
+
+  const toggleSelect = (id) => setSelected(s => s.includes(id) ? s.filter(x=>x!==id) : [...s, id])
+  const toggleAll = () => setSelected(s => s.length === txs.length ? [] : txs.map(t=>t.id))
+
   const totalSinIva = txs.reduce((s, t) => s + (Number(t.amount) - Number(t.tax_amount||0)), 0)
   const totalConIva = txs.reduce((s, t) => s + Number(t.amount), 0)
 
@@ -34,9 +48,16 @@ export default function Ingresos() {
           <div style={{ fontSize:11, letterSpacing:'0.2em', color:'var(--gold)', textTransform:'uppercase', marginBottom:6 }}>INGRESOS</div>
           <h1 style={{ fontFamily:'Cormorant Garamond, serif', fontSize:36, color:'var(--cream)', margin:0 }}>Registro de Ingresos</h1>
         </div>
-        <button className="btn btn-primary" onClick={() => setMode(mode==='manual' ? null : 'manual')}>
-          + Registrar ingreso
-        </button>
+        <div style={{ display:'flex', gap:10 }}>
+          {selected.length > 0 && (
+            <button className="btn btn-ghost" onClick={delSelected} style={{ color:'var(--red-light)', fontSize:13 }}>
+              🗑 Borrar {selected.length} seleccionado(s)
+            </button>
+          )}
+          <button className="btn btn-primary" onClick={() => setMode(mode==='manual' ? null : 'manual')}>
+            + Registrar ingreso
+          </button>
+        </div>
       </div>
 
       {/* Totales */}
@@ -83,7 +104,10 @@ export default function Ingresos() {
         <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
           <thead>
             <tr style={{ borderBottom:'1px solid var(--border)' }}>
-              {['FECHA','DESCRIPCIÓN','MÉTODO','SIN IVA','IVA','CON IVA'].map(h => (
+              <th style={{ padding:'10px 16px', width:32 }}>
+                <input type="checkbox" checked={selected.length===txs.length && txs.length>0} onChange={toggleAll} />
+              </th>
+              {['FECHA','MÉTODO','SIN IVA','IVA','CON IVA'].map(h => (
                 <th key={h} style={{ padding:'10px 16px', textAlign:'left', fontSize:10, letterSpacing:'0.1em', color:'var(--text-muted)', fontWeight:500 }}>{h}</th>
               ))}
             </tr>
@@ -98,9 +122,11 @@ export default function Ingresos() {
               const iva    = Number(tx.tax_amount||0)
               const conIva = Number(tx.amount)
               return (
-                <tr key={tx.id} style={{ borderBottom:'1px solid var(--border-sub)' }}>
+                <tr key={tx.id} style={{ borderBottom:'1px solid var(--border-sub)', background: selected.includes(tx.id) ? 'rgba(201,168,76,0.05)' : 'transparent' }}>
+                  <td style={{ padding:'10px 16px' }}>
+                    <input type="checkbox" checked={selected.includes(tx.id)} onChange={() => toggleSelect(tx.id)} />
+                  </td>
                   <td style={{ padding:'10px 16px', color:'var(--text-dim)' }}>{tx.transaction_date}</td>
-                  <td style={{ padding:'10px 16px', color:'var(--cream)' }}>{tx.description || tx.vendor_client || '—'}</td>
                   <td style={{ padding:'10px 16px', color:'var(--text-dim)' }}>{tx.payment_method || '—'}</td>
                   <td style={{ padding:'10px 16px', color:'var(--green)', textAlign:'right' }}>{sinIva.toFixed(2)}</td>
                   <td style={{ padding:'10px 16px', color:'var(--text-dim)', textAlign:'right' }}>{iva.toFixed(2)}</td>
