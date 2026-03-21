@@ -123,7 +123,7 @@ function ManualForm({ categories, onSave, onClose }) {
 
 function UploadForm({ onSave, onClose }) {
   const [files, setFiles]       = useState([])
-  const [type, setType]         = useState(defaultType === 'income' ? 'income' : 'expense')
+  const [type, setType]         = useState('expense')
   const [loading, setLoading]   = useState(false)
   const [progress, setProgress] = useState([])
   const [dragging, setDragging] = useState(false)
