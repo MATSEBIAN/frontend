@@ -108,7 +108,7 @@ export default function App() {
           </button>
           {movOpen && (
             <div style={{marginLeft:20, marginBottom:4}}>
-              <button onClick={() => setPage('ingresos') style={{
+              <button onClick={() => setPage('ingresos')} style={{
                 display:'flex', alignItems:'center', gap:8,
                 width:'100%', padding:'7px 12px', borderRadius:3,
                 border:'none', cursor:'pointer', textAlign:'left',
@@ -119,7 +119,7 @@ export default function App() {
               }}>
                 <span style={{color:'#4caf7d', fontSize:11}}>↑</span> Ingresos
               </button>
-              <button onClick={() => setPage('gastos') style={{
+              <button onClick={() => setPage('gastos')} style={{
                 display:'flex', alignItems:'center', gap:8,
                 width:'100%', padding:'7px 12px', borderRadius:3,
                 border:'none', cursor:'pointer', textAlign:'left',
