@@ -53,7 +53,7 @@ export default function App() {
   if (!user) return <Login onLogin={handleLogin} />
 
   const pages = { dashboard: Dashboard, reports: Reports }
-  const PageComponent = page === 'transactions' ? () => <Transactions defaultType={txType} /> : (pages[page] || Dashboard)
+  const PageComponent = pages[page] || Dashboard
 
   return (
     <div style={{ display:'flex', height:'100vh', overflow:'hidden' }}>
