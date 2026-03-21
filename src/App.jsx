@@ -15,6 +15,7 @@ const NAV_ITEMS = [
 export default function App() {
   const [user, setUser]       = useState(null)
   const [company, setCompany] = useState(null)
+  const [empresas, setEmpresas]   = useState([])
   const [page, setPage]       = useState('dashboard')
   const [movOpen, setMovOpen]  = useState(false)
   const [loading, setLoading] = useState(true)
@@ -22,7 +23,14 @@ export default function App() {
   useEffect(() => {
     if (api.getToken()) {
       api.me()
-        .then(d => { setUser(d.user); setCompany(d.company) })
+        .then(d => {
+          setUser(d.user)
+          setEmpresas(d.empresas || [])
+          const saved = d.empresas?.find(e => e.id === parseInt(api.getEmpresaId()))
+          const active = saved || d.company || d.empresas?.[0]
+          setCompany(active)
+          if (active) api.setEmpresaId(active.id)
+        })
         .catch(() => api.clearToken())
         .finally(() => setLoading(false))
     } else {
@@ -33,13 +41,17 @@ export default function App() {
   const handleLogin = (data) => {
     api.setToken(data.access_token)
     setUser(data.user)
-    setCompany(data.company)
+    setEmpresas(data.empresas || [])
+    const active = data.company || data.empresas?.[0]
+    setCompany(active)
+    if (active) api.setEmpresaId(active.id)
   }
 
   const handleLogout = () => {
     api.clearToken()
     setUser(null)
     setCompany(null)
+    setEmpresas([])
   }
 
   if (loading) return (
@@ -65,14 +77,33 @@ export default function App() {
         display: 'flex', flexDirection: 'column',
         padding: '0 0 24px',
       }}>
-        {/* Logo */}
-        <div style={{ padding: '28px 24px 24px', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ fontFamily:'Cormorant Garamond, serif', fontSize: 11, letterSpacing:'0.3em', color:'var(--gold)', textTransform:'uppercase' }}>
+        {/* Logo + Empresa selector */}
+        <div style={{ padding: '20px 16px 16px', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ fontFamily:'Cormorant Garamond, serif', fontSize: 11, letterSpacing:'0.3em', color:'var(--gold)', textTransform:'uppercase', marginBottom:10 }}>
             MATSEBIAN
           </div>
-          <div style={{ fontSize: 10, color:'var(--text-muted)', letterSpacing:'0.15em', textTransform:'uppercase', marginTop: 4 }}>
-            {company?.name || 'Mi empresa'}
-          </div>
+          {empresas.length > 1 ? (
+            <select
+              value={company?.id || ''}
+              onChange={e => {
+                const emp = empresas.find(x => x.id === parseInt(e.target.value))
+                if (emp) { setCompany(emp); api.setEmpresaId(emp.id) }
+              }}
+              style={{
+                width:'100%', background:'rgba(201,168,76,0.08)', border:'1px solid var(--border)',
+                borderRadius:3, color:'var(--cream)', fontSize:11, padding:'6px 8px',
+                fontFamily:'Jost, sans-serif', cursor:'pointer', letterSpacing:'0.05em'
+              }}
+            >
+              {empresas.map(e => (
+                <option key={e.id} value={e.id} style={{ background:'#0d2e1f' }}>{e.nombre_corto || e.nombre}</option>
+              ))}
+            </select>
+          ) : (
+            <div style={{ fontSize:10, color:'var(--text-muted)', letterSpacing:'0.15em', textTransform:'uppercase' }}>
+              {company?.nombre_corto || company?.nombre || 'Mi empresa'}
+            </div>
+          )}
         </div>
 
         {/* Nav */}
