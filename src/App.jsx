@@ -7,7 +7,7 @@ import Reports from './pages/Reports.jsx'
 
 const NAV_ITEMS = [
   { key: 'dashboard',    label: 'Dashboard',      icon: '◈' },
-  { key: 'transactions', label: 'Movimientos',     icon: '⊟' },
+
   { key: 'reports',      label: 'Reportes',        icon: '◎' },
 ]
 
@@ -15,6 +15,8 @@ export default function App() {
   const [user, setUser]       = useState(null)
   const [company, setCompany] = useState(null)
   const [page, setPage]       = useState('dashboard')
+  const [txType, setTxType]    = useState('expense')
+  const [movOpen, setMovOpen]  = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -50,8 +52,8 @@ export default function App() {
 
   if (!user) return <Login onLogin={handleLogin} />
 
-  const pages = { dashboard: Dashboard, transactions: Transactions, reports: Reports }
-  const PageComponent = pages[page] || Dashboard
+  const pages = { dashboard: Dashboard, reports: Reports }
+  const PageComponent = page === 'transactions' ? () => <Transactions defaultType={txType} /> : (pages[page] || Dashboard)
 
   return (
     <div style={{ display:'flex', height:'100vh', overflow:'hidden' }}>
@@ -75,29 +77,76 @@ export default function App() {
 
         {/* Nav */}
         <nav style={{ flex: 1, padding: '20px 12px' }}>
-          {NAV_ITEMS.map(item => (
-            <button
-              key={item.key}
-              onClick={() => setPage(item.key)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                width: '100%', padding: '10px 12px', borderRadius: 3,
-                border: 'none', cursor: 'pointer', textAlign: 'left',
-                fontSize: 13, letterSpacing: '0.06em',
-                background: page === item.key ? 'rgba(201,168,76,0.12)' : 'transparent',
-                color: page === item.key ? 'var(--gold)' : 'var(--text-dim)',
-                fontFamily: 'Jost, sans-serif',
-                transition: 'all 0.15s',
-                marginBottom: 2,
-              }}
-            >
-              <span style={{ fontSize: 16, width: 20, textAlign:'center' }}>{item.icon}</span>
-              {item.label}
-              {page === item.key && (
-                <span style={{ marginLeft:'auto', width:3, height:3, borderRadius:'50%', background:'var(--gold)' }}/>
-              )}
-            </button>
-          ))}
+          {/* Dashboard */}
+          <button onClick={() => setPage('dashboard')} style={{
+            display:'flex', alignItems:'center', gap:10,
+            width:'100%', padding:'10px 12px', borderRadius:3,
+            border:'none', cursor:'pointer', textAlign:'left',
+            fontSize:13, letterSpacing:'0.06em',
+            background: page==='dashboard' ? 'rgba(201,168,76,0.12)' : 'transparent',
+            color: page==='dashboard' ? 'var(--gold)' : 'var(--text-dim)',
+            fontFamily:'Jost, sans-serif', transition:'all 0.15s', marginBottom:2,
+          }}>
+            <span style={{fontSize:16,width:20,textAlign:'center'}}>◆</span>
+            Dashboard
+            {page==='dashboard' && <span style={{marginLeft:'auto',width:3,height:3,borderRadius:'50%',background:'var(--gold)'}}/>}
+          </button>
+
+          {/* Movimientos con submenu */}
+          <button onClick={() => setMovOpen(o => !o)} style={{
+            display:'flex', alignItems:'center', gap:10,
+            width:'100%', padding:'10px 12px', borderRadius:3,
+            border:'none', cursor:'pointer', textAlign:'left',
+            fontSize:13, letterSpacing:'0.06em',
+            background: page==='transactions' ? 'rgba(201,168,76,0.12)' : 'transparent',
+            color: page==='transactions' ? 'var(--gold)' : 'var(--text-dim)',
+            fontFamily:'Jost, sans-serif', transition:'all 0.15s', marginBottom:2,
+          }}>
+            <span style={{fontSize:16,width:20,textAlign:'center'}}>⊟</span>
+            Movimientos
+            <span style={{marginLeft:'auto', fontSize:10, transition:'transform 0.2s', display:'inline-block', transform: movOpen ? 'rotate(180deg)' : 'rotate(0deg)'}}>▾</span>
+          </button>
+          {movOpen && (
+            <div style={{marginLeft:20, marginBottom:4}}>
+              <button onClick={() => { setTxType('income'); setPage('transactions') }} style={{
+                display:'flex', alignItems:'center', gap:8,
+                width:'100%', padding:'7px 12px', borderRadius:3,
+                border:'none', cursor:'pointer', textAlign:'left',
+                fontSize:12, letterSpacing:'0.05em',
+                background: page==='transactions' && txType==='income' ? 'rgba(201,168,76,0.1)' : 'transparent',
+                color: page==='transactions' && txType==='income' ? 'var(--gold)' : 'var(--text-dim)',
+                fontFamily:'Jost, sans-serif', transition:'all 0.15s', marginBottom:1,
+              }}>
+                <span style={{color:'#4caf7d', fontSize:11}}>↑</span> Ingresos
+              </button>
+              <button onClick={() => { setTxType('expense'); setPage('transactions') }} style={{
+                display:'flex', alignItems:'center', gap:8,
+                width:'100%', padding:'7px 12px', borderRadius:3,
+                border:'none', cursor:'pointer', textAlign:'left',
+                fontSize:12, letterSpacing:'0.05em',
+                background: page==='transactions' && txType==='expense' ? 'rgba(201,168,76,0.1)' : 'transparent',
+                color: page==='transactions' && txType==='expense' ? 'var(--gold)' : 'var(--text-dim)',
+                fontFamily:'Jost, sans-serif', transition:'all 0.15s', marginBottom:1,
+              }}>
+                <span style={{color:'#e57373', fontSize:11}}>↓</span> Gastos
+              </button>
+            </div>
+          )}
+
+          {/* Reportes */}
+          <button onClick={() => setPage('reports')} style={{
+            display:'flex', alignItems:'center', gap:10,
+            width:'100%', padding:'10px 12px', borderRadius:3,
+            border:'none', cursor:'pointer', textAlign:'left',
+            fontSize:13, letterSpacing:'0.06em',
+            background: page==='reports' ? 'rgba(201,168,76,0.12)' : 'transparent',
+            color: page==='reports' ? 'var(--gold)' : 'var(--text-dim)',
+            fontFamily:'Jost, sans-serif', transition:'all 0.15s', marginBottom:2,
+          }}>
+            <span style={{fontSize:16,width:20,textAlign:'center'}}>○</span>
+            Reportes
+            {page==='reports' && <span style={{marginLeft:'auto',width:3,height:3,borderRadius:'50%',background:'var(--gold)'}}/>}
+          </button>
         </nav>
 
         {/* User */}

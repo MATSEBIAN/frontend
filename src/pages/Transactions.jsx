@@ -250,7 +250,7 @@ function UploadForm({ onSave, onClose }) {
   )
 }
 
-export default function Transactions() {
+export default function Transactions({ defaultType }) {
   const [txs, setTxs]             = useState([])
   const [cats, setCats]           = useState([])
   const [loading, setLoading]     = useState(true)
