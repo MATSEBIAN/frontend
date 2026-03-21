@@ -37,7 +37,20 @@ function ManualForm({ categories, onSave, onClose }) {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [amountConIva, setAmountConIva] = useState('')
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
+
+  const onChangeSinIva = e => {
+    const v = e.target.value
+    setForm(f => ({ ...f, amount: v, tax_amount: v ? (parseFloat(v)*0.1).toFixed(2) : '' }))
+    setAmountConIva(v ? (parseFloat(v)*1.1).toFixed(2) : '')
+  }
+  const onChangeConIva = e => {
+    const v = e.target.value
+    const sinIva = v ? (parseFloat(v)/1.1).toFixed(2) : ''
+    setForm(f => ({ ...f, amount: sinIva, tax_amount: sinIva ? (parseFloat(sinIva)*0.1).toFixed(2) : '' }))
+    setAmountConIva(v)
+  }
 
   const submit = async (e) => {
     e.preventDefault(); setError(''); setLoading(true)
@@ -65,12 +78,12 @@ function ManualForm({ categories, onSave, onClose }) {
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
         <div className="form-group">
-          <label className="form-label">Importe (€) *</label>
-          <input className="input" type="number" step="0.01" min="0" placeholder="0.00" value={form.amount} onChange={set('amount')} required />
+          <label className="form-label">Importe sin IVA *</label>
+          <input className="input" type="number" step="0.01" min="0" placeholder="0.00" value={form.amount} onChange={onChangeSinIva} required />
         </div>
         <div className="form-group">
-          <label className="form-label">IVA incluido (€)</label>
-          <input className="input" type="number" step="0.01" min="0" placeholder="0.00" value={form.tax_amount} onChange={set('tax_amount')} />
+          <label className="form-label">Importe IVA incluido (10%)</label>
+          <input className="input" type="number" step="0.01" min="0" placeholder="0.00" value={amountConIva} onChange={onChangeConIva} />
         </div>
       </div>
 
