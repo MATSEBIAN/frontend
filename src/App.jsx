@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { api } from './api.js'
 import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
-import Transactions from './pages/Transactions.jsx'
+import Gastos from './pages/Gastos.jsx'
+import Ingresos from './pages/Ingresos.jsx'
 import Reports from './pages/Reports.jsx'
 
 const NAV_ITEMS = [
@@ -15,7 +16,6 @@ export default function App() {
   const [user, setUser]       = useState(null)
   const [company, setCompany] = useState(null)
   const [page, setPage]       = useState('dashboard')
-  const [txType, setTxType]    = useState('expense')
   const [movOpen, setMovOpen]  = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -52,7 +52,7 @@ export default function App() {
 
   if (!user) return <Login onLogin={handleLogin} />
 
-  const pages = { dashboard: Dashboard, reports: Reports }
+  const pages = { dashboard: Dashboard, reports: Reports, ingresos: Ingresos, gastos: Gastos }
   const PageComponent = pages[page] || Dashboard
 
   return (
@@ -98,8 +98,8 @@ export default function App() {
             width:'100%', padding:'10px 12px', borderRadius:3,
             border:'none', cursor:'pointer', textAlign:'left',
             fontSize:13, letterSpacing:'0.06em',
-            background: page==='transactions' ? 'rgba(201,168,76,0.12)' : 'transparent',
-            color: page==='transactions' ? 'var(--gold)' : 'var(--text-dim)',
+            background: (page==='ingresos'||page==='gastos') ? 'rgba(201,168,76,0.12)' : 'transparent',
+            color: (page==='ingresos'||page==='gastos') ? 'var(--gold)' : 'var(--text-dim)',
             fontFamily:'Jost, sans-serif', transition:'all 0.15s', marginBottom:2,
           }}>
             <span style={{fontSize:16,width:20,textAlign:'center'}}>⊟</span>
@@ -108,24 +108,24 @@ export default function App() {
           </button>
           {movOpen && (
             <div style={{marginLeft:20, marginBottom:4}}>
-              <button onClick={() => { setTxType('income'); setPage('transactions') }} style={{
+              <button onClick={() => setPage('ingresos') style={{
                 display:'flex', alignItems:'center', gap:8,
                 width:'100%', padding:'7px 12px', borderRadius:3,
                 border:'none', cursor:'pointer', textAlign:'left',
                 fontSize:12, letterSpacing:'0.05em',
-                background: page==='transactions' && txType==='income' ? 'rgba(201,168,76,0.1)' : 'transparent',
-                color: page==='transactions' && txType==='income' ? 'var(--gold)' : 'var(--text-dim)',
+                background: page==='ingresos' ? 'rgba(201,168,76,0.1)' : 'transparent',
+                color: page==='ingresos' ? 'var(--gold)' : 'var(--text-dim)',
                 fontFamily:'Jost, sans-serif', transition:'all 0.15s', marginBottom:1,
               }}>
                 <span style={{color:'#4caf7d', fontSize:11}}>↑</span> Ingresos
               </button>
-              <button onClick={() => { setTxType('expense'); setPage('transactions') }} style={{
+              <button onClick={() => setPage('gastos') style={{
                 display:'flex', alignItems:'center', gap:8,
                 width:'100%', padding:'7px 12px', borderRadius:3,
                 border:'none', cursor:'pointer', textAlign:'left',
                 fontSize:12, letterSpacing:'0.05em',
-                background: page==='transactions' && txType==='expense' ? 'rgba(201,168,76,0.1)' : 'transparent',
-                color: page==='transactions' && txType==='expense' ? 'var(--gold)' : 'var(--text-dim)',
+                background: page==='gastos' ? 'rgba(201,168,76,0.1)' : 'transparent',
+                color: page==='gastos' ? 'var(--gold)' : 'var(--text-dim)',
                 fontFamily:'Jost, sans-serif', transition:'all 0.15s', marginBottom:1,
               }}>
                 <span style={{color:'#e57373', fontSize:11}}>↓</span> Gastos
@@ -172,7 +172,7 @@ export default function App() {
 
       {/* MAIN */}
       <main style={{ flex: 1, overflow:'auto', padding: '32px 40px' }}>
-        {page === 'transactions' ? <Transactions key={txType} defaultType={txType} company={company} user={user} /> : <PageComponent company={company} user={user} />}
+        <PageComponent company={company} user={user} />
       </main>
     </div>
   )
