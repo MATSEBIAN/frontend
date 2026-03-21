@@ -123,7 +123,7 @@ function ManualForm({ categories, onSave, onClose }) {
 
 function UploadForm({ onSave, onClose }) {
   const [files, setFiles]       = useState([])
-  const [type, setType]         = useState('expense')
+  const [type, setType]         = useState(defaultType === 'income' ? 'income' : 'expense')
   const [loading, setLoading]   = useState(false)
   const [progress, setProgress] = useState([])
   const [dragging, setDragging] = useState(false)
@@ -255,7 +255,7 @@ export default function Transactions({ defaultType }) {
   const [cats, setCats]           = useState([])
   const [loading, setLoading]     = useState(true)
   const [mode, setMode]           = useState(null)
-  const [filter, setFilter]       = useState({ type:'', month:'', year:'' })
+  const [filter, setFilter]       = useState({ type: defaultType === 'income' ? 'income' : defaultType === 'expense' ? 'expense' : '', month:'', year:'' })
 
   const today = new Date()
 
