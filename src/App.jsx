@@ -172,7 +172,7 @@ export default function App() {
 
       {/* MAIN */}
       <main style={{ flex: 1, overflow:'auto', padding: '32px 40px' }}>
-        <PageComponent company={company} user={user} />
+        {page === 'transactions' ? <Transactions defaultType={txType} company={company} user={user} /> : <PageComponent company={company} user={user} />}
       </main>
     </div>
   )
